@@ -1,0 +1,8 @@
+# dsh-skin bundle patch: mounts the skin bundle.
+#
+# Host half (index.js) does nothing; the Client half (client.js) stacks a
+# token-override layer over the active theme and registers the skin row in
+# Settings → General.
+- insert:
+    - id: dsh-skin
+      name: dsh-skin
