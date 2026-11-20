@@ -39,9 +39,6 @@ window.__ModuleLoader__.load({
 
     /** 等宽字体栈，黑客风格用。 */
     var MONO_UI = "'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, 'PingFang SC', monospace"
-    /** 打字机字体栈，sketch 风格用。 */
-    var TYPEWRITER_UI = "'Courier New', Courier, ui-monospace, 'SF Mono', Menlo, monospace"
-
     /** 衬线字体栈，写作风格用。优先宋体，再退到西文衬线。 */
     var SERIF_UI = "'Songti SC', 'Noto Serif SC', 'Source Han Serif SC', Georgia, 'Times New Roman', serif"
 
@@ -300,7 +297,7 @@ window.__ModuleLoader__.load({
 
       sketch: {
         name: 'styleSketch',
-        font: TYPEWRITER_UI,
+        font: null,
         radii: {
           small: { xs: '3px', sm: '4px', md: '6px', lg: '8px', xl: '10px', panel: '12px' },
           medium: { xs: '4px', sm: '6px', md: '8px', lg: '12px', xl: '14px', panel: '16px' },
@@ -383,8 +380,15 @@ window.__ModuleLoader__.load({
       }
     }
 
+    /** 行距档位。standard 不动宿主的排版 token，其余两档改正文、代码块、表格和小字的行高。 */
+    var LINE_HEIGHTS = {
+      compact: { base: 20, code: 17, small: 17, table: 19 },
+      standard: null,
+      loose: { base: 28, code: 22, small: 23, table: 25 }
+    }
+
     /** 默认值。 */
-    var DEFAULTS = { enabled: true, style: 'minimal', accent: 'indigo', radius: 'small' }
+    var DEFAULTS = { enabled: true, style: 'minimal', accent: 'indigo', radius: 'small', lineHeight: 'standard' }
 
     /**
      * 强调色落点。发送键用 info-fill，配的是白字，深浅两套都成立；
@@ -415,6 +419,10 @@ window.__ModuleLoader__.load({
         radiusSmall: '小',
         radiusMedium: '中',
         radiusLarge: '大',
+        lineHeight: '行距',
+        lhCompact: '紧凑',
+        lhStandard: '标准',
+        lhLoose: '宽松',
         toggle: '启用皮肤',
         reset: '恢复皮肤默认',
         noTheme: '没接上 dsh 的主题服务，皮肤暂时不生效。',
@@ -448,6 +456,10 @@ window.__ModuleLoader__.load({
         radiusSmall: 'Small',
         radiusMedium: 'Medium',
         radiusLarge: 'Large',
+        lineHeight: 'Line spacing',
+        lhCompact: 'Compact',
+        lhStandard: 'Standard',
+        lhLoose: 'Loose',
         toggle: 'Enable skin',
         reset: 'Reset skin defaults',
         noTheme: 'The dsh theme service is unavailable, so the skin is not applied.',
@@ -502,6 +514,21 @@ window.__ModuleLoader__.load({
       '.dsk-reset:disabled { opacity: 0.5; cursor: default; }',
       '@media (hover: hover) { .dsk-reset:hover:not(:disabled) { color: var(--dsw-alias-label-primary); } }',
       '.dsk-off .dsk-body { opacity: 0.7; }',
+      /* 会话列是 overflow: hidden，任何超宽内容都会被直接裁掉、连滚动条都没有。
+         这里让正文里的长串主动找断点，别把整行顶出列宽。 */
+      'body[data-dsh-skin-style] { overflow-wrap: anywhere; }',
+      'body[data-dsh-skin-style] [data-slot="main"] :is(p, li, blockquote, td, th, h1, h2, h3, h4, h5, h6) { overflow-wrap: anywhere; word-break: break-word; }',
+      /* KaTeX 默认把公式放大到 1.21em，行内一多就显得字一大一小。压回跟正文一致。
+         公式本身没有空格，浏览器找不到断行点，所以放开断词，长公式才会在行内折开。 */
+      /* DSH 的公式容器实际是 .katex-base，KaTeX 给它写了 white-space: nowrap
+         和 width: min-content，既不肯折行、又把盒子撑到最长那一段的宽度。
+         这里把这两条都改掉，让它按普通行内内容参与折行。 */
+      'body[data-dsh-skin-style] .katex-base { display: inline; white-space: normal; width: auto; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; font-size: 1.02em; }',
+      'body[data-dsh-skin-style] .katex-base .mord, body[data-dsh-skin-style] .katex-base .cjk_fallback { display: inline; white-space: normal; }',
+      'body[data-dsh-skin-style] .katex { font-size: 1.02em; display: inline; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }',
+      'body[data-dsh-skin-style] .katex .katex-html { display: inline; }',
+      'body[data-dsh-skin-style] .katex-display { font-size: 1em; white-space: normal; overflow-x: auto; overflow-y: hidden; }',
+      'body[data-dsh-skin-style] .katex-display > .katex { display: inline; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }',
       'body[data-dsh-skin-style], body[data-dsh-skin-style] * { --dsw-elevation-stroke: 0 0 0 0.5px var(--dsk-elevation-stroke-color); --dsw-elevation-panel: var(--dsk-elevation-panel); --dsw-elevation-prominent: var(--dsk-elevation-prominent); --dsw-elevation-soft: var(--dsk-elevation-soft); }',
       'body[data-dsh-skin-style] [data-slot="sidebar.session.action"] button { transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease, color 150ms ease; }',
       'body[data-dsh-skin-style] [data-slot="sidebar.session.action"] button:has([class*="newSessionLabel"]) { height: 46px; align-items: center; padding: 0 14px; }',
@@ -549,11 +576,15 @@ window.__ModuleLoader__.load({
       var style = STYLES[styleId]
       var accent = findById(style.accents, value.accent) || style.accents[0]
       var radius = style.radii[value.radius] === undefined ? DEFAULTS.radius : value.radius
+      var lineHeight = LINE_HEIGHTS[value.lineHeight] === undefined && value.lineHeight !== 'standard'
+        ? DEFAULTS.lineHeight
+        : (value.lineHeight === undefined ? DEFAULTS.lineHeight : value.lineHeight)
       return {
         enabled: value.enabled === false ? false : true,
         style: styleId,
         accent: accent.id,
-        radius: radius
+        radius: radius,
+        lineHeight: LINE_HEIGHTS[lineHeight] === undefined && lineHeight !== 'standard' ? DEFAULTS.lineHeight : lineHeight
       }
     }
 
@@ -565,7 +596,7 @@ window.__ModuleLoader__.load({
       } catch (error) {
         saved = null
       }
-      var raw = { enabled: DEFAULTS.enabled, style: DEFAULTS.style, accent: DEFAULTS.accent, radius: DEFAULTS.radius }
+      var raw = { enabled: DEFAULTS.enabled, style: DEFAULTS.style, accent: DEFAULTS.accent, radius: DEFAULTS.radius, lineHeight: DEFAULTS.lineHeight }
       if (saved === null || saved === undefined || saved === '') return normalizeSettings(raw)
       var parsed
       try {
@@ -578,6 +609,7 @@ window.__ModuleLoader__.load({
       if (typeof parsed.style === 'string') raw.style = parsed.style
       if (typeof parsed.accent === 'string') raw.accent = parsed.accent
       if (typeof parsed.radius === 'string') raw.radius = parsed.radius
+      if (typeof parsed.lineHeight === 'string') raw.lineHeight = parsed.lineHeight
       return normalizeSettings(raw)
     }
 
@@ -681,6 +713,39 @@ window.__ModuleLoader__.load({
         light: tint(accent.light.fill, 10, lightBase),
         dark: tint(accent.dark.fill, 20, darkBase)
       }
+      // 行距：只改行高，字号沿用当前设置。standard 不覆盖，直接吃宿主的 24px。
+      var lh = LINE_HEIGHTS[value.lineHeight]
+      if (lh) {
+        var size = 'var(--dsh-content-font-size, 14px)'
+        var size2 = 'var(--dsh-content-font-size-secondary, 13px)'
+        var baseLh = 'calc(' + lh.base + 'px + var(--dsh-content-font-delta))'
+        var tableLh = 'calc(' + lh.table + 'px + var(--dsh-content-font-delta-secondary, 0px))'
+        var codeLh = 'calc(' + lh.code + 'px + var(--dsh-code-font-delta))'
+        var typed = {
+          '--dsw-font-markdown-base': size + '/' + baseLh + ' var(--dsw-font-family)',
+          '--dsw-font-markdown-base-line-height': baseLh,
+          '--dsw-font-markdown-base-strong': '600 ' + size + '/' + baseLh + ' var(--dsw-font-family)',
+          '--dsw-font-markdown-base-strong-line-height': baseLh,
+          '--dsw-font-markdown-base-italic': 'italic ' + size + '/' + baseLh + ' var(--dsw-font-family)',
+          '--dsw-font-markdown-base-italic-line-height': baseLh,
+          '--dsw-font-markdown-base-strong-italic': 'italic 600 ' + size + '/' + baseLh + ' var(--dsw-font-family)',
+          '--dsw-font-markdown-base-strong-italic-line-height': baseLh,
+          '--dsw-font-markdown-small': '12px/' + lh.small + 'px var(--dsw-font-family)',
+          '--dsw-font-markdown-small-line-height': lh.small + 'px',
+          '--dsw-font-markdown-table': size2 + '/' + tableLh + ' var(--dsw-font-family)',
+          '--dsw-font-markdown-table-line-height': tableLh,
+          '--dsw-font-markdown-table-head': '500 ' + size2 + '/' + tableLh + ' var(--dsw-font-family)',
+          '--dsw-font-markdown-table-head-line-height': tableLh,
+          '--dsw-font-markdown-code': 'calc(12px + var(--dsh-code-font-delta))' + '/' + codeLh + ' var(--ds-font-family-code)',
+          '--dsw-font-markdown-code-line-height': codeLh,
+          '--dsw-font-markdown-code-block': 'var(--dsh-code-font-size, 11px)' + '/' + codeLh + ' var(--ds-font-family-code)',
+          '--dsw-font-markdown-code-block-line-height': codeLh
+        }
+        for (var typedName in typed) {
+          if (!Object.prototype.hasOwnProperty.call(typed, typedName)) continue
+          out[typedName] = { light: typed[typedName], dark: typed[typedName] }
+        }
+      }
       // 宿主的 --dsw-elevation-* 是声明在 body, body * 上的，只覆盖 body 传不到组件；
       // 这里另发一份 --dsk-* 私有变量，由样式表转发到每个元素。
       var forwarded = ['--dsw-elevation-panel', '--dsw-elevation-prominent', '--dsw-elevation-soft', '--dsw-elevation-stroke-color']
@@ -698,7 +763,8 @@ window.__ModuleLoader__.load({
         enabled: patch.enabled === undefined ? settings.enabled : patch.enabled,
         style: patch.style === undefined ? settings.style : patch.style,
         accent: patch.accent === undefined ? settings.accent : patch.accent,
-        radius: patch.radius === undefined ? settings.radius : patch.radius
+        radius: patch.radius === undefined ? settings.radius : patch.radius,
+        lineHeight: patch.lineHeight === undefined ? settings.lineHeight : patch.lineHeight
       })
       settings = next
       writeSettings(settings)
@@ -1051,10 +1117,25 @@ window.__ModuleLoader__.load({
         }, t(levelLabels[level]))
       })
 
+      var lhLevels = ['compact', 'standard', 'loose']
+      var lhLabels = { compact: 'lhCompact', standard: 'lhStandard', loose: 'lhLoose' }
+      var lhChips = lhLevels.map(function (level) {
+        return h('button', {
+          key: level,
+          type: 'button',
+          className: 'dsk-chip',
+          'aria-pressed': current.lineHeight === level,
+          onClick: function () {
+            update({ lineHeight: level, enabled: true })
+          }
+        }, t(lhLabels[level]))
+      })
+
       var atDefault = current.enabled
         && current.style === DEFAULTS.style
         && current.accent === DEFAULTS.accent
         && current.radius === DEFAULTS.radius
+        && current.lineHeight === DEFAULTS.lineHeight
 
       return h('div', { className: current.enabled ? 'dsk-row' : 'dsk-row dsk-off' },
         h('div', { className: 'dsk-head' },
@@ -1085,12 +1166,16 @@ window.__ModuleLoader__.load({
             h('span', { className: 'dsk-label', id: 'dsk-radius-label' }, t('radius') + ' · ' + t(levelLabels[current.radius])),
             chips
           ),
+          h('div', { className: 'dsk-group', role: 'group', 'aria-labelledby': 'dsk-lh-label' },
+            h('span', { className: 'dsk-label', id: 'dsk-lh-label' }, t('lineHeight') + ' · ' + t(lhLabels[current.lineHeight])),
+            lhChips
+          ),
           h('button', {
             type: 'button',
             className: 'dsk-reset',
             disabled: atDefault,
             onClick: function () {
-              update({ enabled: true, style: DEFAULTS.style, accent: DEFAULTS.accent, radius: DEFAULTS.radius })
+              update({ enabled: true, style: DEFAULTS.style, accent: DEFAULTS.accent, radius: DEFAULTS.radius, lineHeight: DEFAULTS.lineHeight })
             }
           }, t('reset'))
         )

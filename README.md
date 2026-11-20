@@ -11,7 +11,7 @@
 | 极简 | 中性灰画布 + 白面板 | 近黑分层 | 跟你的字体设置 | 小（3–16px） |
 | 黑客 | 淡橄榄纸底、近黑字、绿点缀 | 近黑底、中性灰字、磷光绿只出现在强调处 | 等宽 | 几乎直角（0–4px） |
 | 写作 | 暖纸底、米白面板、中性墨字 | 暖褐底、中性浅字 | 宋体 | 大（4–20px） |
-| 手绘 | 白纸底 + 纯黑墨线 + 错位实心投影，蓝/粉点缀 | 黑板底 + 白墨线 + 同样的硬投影 | 打字机等宽 | 小（3–12px），跟参考图一致 |
+| 手绘 | 白纸底 + 纯黑墨线 + 错位实心投影，蓝/粉点缀 | 黑板底 + 白墨线 + 同样的硬投影 | 跟你的字体设置 | 小（3–12px），跟参考图一致 |
 
 黑客和写作会接管 UI 字体，盖掉「字体设置」那一行的选择；极简和二次元不管字体，跟随你的设置。
 
@@ -33,6 +33,7 @@ dsh plugin --profile web add "github:DSH43/dsh-skin#main"
 - **风格**：极简 / 黑客 / 写作 / 手绘。切换时强调色会自动落到该风格的第一色。
 - **强调色**：每套风格四种。落在发送键、链接、焦点环、选中描边、用户气泡、计划模式底上。
 - **圆角半径**：小 / 中 / 大三档，每套风格各有自己的三档数值。
+- **行距**：紧凑 / 标准 / 宽松。只改行高不动字号——紧凑把正文从 24px 收到 20px、代码块从 19px 收到 17px，宽松放到 28px 和 22px。标准就是不覆盖，用宿主默认。
 - **恢复皮肤默认**：回到极简 + 靛蓝 + 小圆角。已经是默认值时按钮不可点。
 
 如果主题服务没接上，行里会显示一句黄色提示，皮肤不生效。
@@ -57,7 +58,7 @@ dsh plugin --profile web add "github:DSH43/dsh-skin#main"
 
 ## 手绘那套怎么来的
 
-照 NEO-SKEUO 的规则做，只用中性灰（不带暖色）：描边比常规主题略重但不压人（`--dsw-alias-border-l1..l4` 在 12–32% 不透明），阴影是不带模糊的实心错位投影（`1px 1px 0` 到 `3px 3px 0`），侧栏铺一层 45 度斜纹当前纸纹，字体换打字机等宽。深色是黑板：纯黑底、白墨线、同样的硬投影。整套只用中性灰，没有暖调；强调色是墨黑、Flickr 蓝、Flickr 粉、灰四档。
+照 NEO-SKEUO 的规则做，只用中性灰（不带暖色）：描边比常规主题略重但不压人（`--dsw-alias-border-l1..l4` 在 12–32% 不透明），阴影是不带模糊的实心错位投影（`1px 1px 0` 到 `3px 3px 0`），侧栏铺一层 45 度斜纹当前纸纹，字体跟随用户的设置，不接管。深色是黑板：纯黑底、白墨线、同样的硬投影。整套只用中性灰，没有暖调；强调色是墨黑、Flickr 蓝、Flickr 粉、灰四档。
 
 这里有个坑：宿主的 `--dsw-elevation-*` 声明在 `body, body *` 上，只覆盖 body 传不到组件。插件另发一份 `--dsk-elevation-*` 私有变量，再用 `body[data-dsh-skin-style] *` 转发，四套风格的阴影才真的落到面板上。
 
@@ -76,9 +77,18 @@ dsh plugin --profile web add "github:DSH43/dsh-skin#main"
 | 阴影 | `--dsw-shadow-lv1..3`、`--dsw-elevation-panel/prominent/soft`、`elevation-stroke-color` |
 | 圆角 | `--dsw-radius-xs/sm/md/lg/xl/panel` |
 | 字体 | `--dsw-font-family`（仅黑客和写作） |
+| 行距 | `--dsw-font-markdown-base`、`base-strong`、`base-italic`、`small`、`table`、`code`、`code-block` 及其 `-line-height`，只在非标准档覆盖 |
 | 强调色 | `--dsw-alias-button-info-fill`、`button-info-hover`、`state-business-primary`、`state-business-tertiary`、`link`、`trajectory-accent`、`brand-primary-new-colorprimary-new-color`、`border-selected`、`--dsw-specific-bubble`、`bubble-highlight`、`sidebar-nav-item-active-accent`、`sidebar-right-flash`、`chart-messages` |
 
 强调色配套的浅色底用 `color-mix` 按当前强调色现算，不写死。
+
+## 关于公式
+
+正文渲染默认开着 KaTeX，`$` 会被当公式定界符。价格、金额写成 `$4.99` 这种，两个美元符号会把中间整段当成公式，结果是不折行、字忽大忽小。KaTeX 的每个字符都是独立的 inline-block，靠 `overflow-wrap` 折不开。DSH 渲染出的公式容器是 `.katex-base`，KaTeX 给它写了 `white-space: nowrap` 和 `width: min-content`，既不折行、又把盒子撑到最长那段。皮肤里把这两条改掉（`display: inline; white-space: normal; width: auto`），字号压到 1.02em，长段就能跟着正文折行。代价是真的写复杂公式时可能被拆行，上下标位置也会飘。写价格时用 `\$` 转义、或者干脆不写美元符号，才是干净的做法。
+
+## 一个宿主行为
+
+会话列是 `overflow: hidden`：内容比列宽时直接裁掉，没有横向滚动条。皮肤里给正文加了 `overflow-wrap: anywhere` 主动找断点，能覆盖大多数长串。如果还有被裁的情况，那是宿主的列宽和裁剪规则决定的，插件只能缓解。
 
 ## 边界
 

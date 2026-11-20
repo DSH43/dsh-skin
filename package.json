@@ -1,6 +1,6 @@
 {
   "name": "dsh-skin",
-  "version": "1.5.1",
+  "version": "1.8.0",
   "description": "给 dsh Web 界面换整套外观：极简、黑客、写作、手绘四套风格，配色字体圆角可调",
   "license": "MIT",
   "type": "module",
