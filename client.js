@@ -5,13 +5,14 @@
  * 界面换成一套完整的外观（配色、字体、圆角、阴影），再往设置 → 常规里注册一行，
  * 能选风格、开关、选强调色、选圆角档、恢复默认。
  *
- * 三套风格：
+ * 四套风格：
  *   minimal  中性灰底、无衬线、小圆角（默认）
- *   hacker   荧光绿 + 等宽字体 + 几乎直角，深色是荧光屏，浅色是纸带
- *   writing  暖纸底 + 宋体正文 + 大圆角，深色是夜里读书
+ *   hacker   清晰的工作区层级，代码与版本保留等宽，强调色保留终端风格
+ *   writing  纸白画布 + 宋体正文 + 墨青强调
  *
- * 只覆盖 token，不碰组件 CSS，也不读别人的 DOM。所以 dsh 升级改了组件结构，
- * 这层皮肤照样生效；只有 token 改名才会掉效果。
+ *   sketch   中性纸底 + 局部纹理 + 墨线细阴影
+ *
+ * 配色和字体通过主题 token 覆盖，布局规则由皮肤启用状态和宿主槽位限定。
  *
  * 选择存在 localStorage（每个浏览器各存各的）。第三方主题 id 过不了设置 schema，
  * 存不进 dsh 自己的设置文档，皮肤是纯前端的东西，localStorage 够用。
@@ -34,22 +35,54 @@ window.__ModuleLoader__.load({
     /** 浏览器本地保存键。 */
     var STORE_KEY = 'dsh-skin:settings:v2'
 
-    /** DSH 自己的鲸鱼轮廓（ui-primitives FishLogoPath），viewBox 0 0 23.16 17.04。 */
+    /** DSH 的原版鲸鱼轮廓，四套皮肤使用同一路径。 */
     var WHALE_PATH = 'M22.9168 1.43018C22.6713 1.31018 22.5658 1.53918 22.4223 1.65519C22.3733 1.69269 22.3318 1.74169 22.2903 1.78669C21.9317 2.1697 21.5127 2.42121 20.9657 2.39121C20.1657 2.34621 19.4827 2.59771 18.8787 3.20973C18.7502 2.45521 18.3236 2.0047 17.6746 1.71569C17.3351 1.56568 16.9916 1.41518 16.7536 1.08867C16.5876 0.856163 16.5421 0.597155 16.4591 0.341647C16.4061 0.187643 16.3536 0.0301382 16.1761 0.00363739C15.9836 -0.0263635 15.9081 0.135141 15.8326 0.270145C15.5306 0.822162 15.4136 1.43018 15.4251 2.0462C15.4516 3.43174 16.0366 4.53527 17.1991 5.3203C17.3311 5.4103 17.3651 5.5003 17.3236 5.63181C17.2441 5.90231 17.1501 6.16482 17.0671 6.43533C17.0141 6.60784 16.9351 6.64584 16.7501 6.57033C16.1121 6.30383 15.5611 5.90931 15.074 5.4328C14.2475 4.63328 13.5 3.75075 12.568 3.05973C12.349 2.89822 12.13 2.74822 11.9034 2.60522C10.9524 1.68169 12.028 0.923165 12.277 0.833162C12.5375 0.739159 12.3675 0.41615 11.5259 0.42015C10.6844 0.42365 9.91439 0.705658 8.93286 1.08117C8.78935 1.13767 8.63835 1.17867 8.48384 1.21267C7.59332 1.04367 6.66829 1.00617 5.70226 1.11517C3.88321 1.31768 2.43016 2.1777 1.36213 3.64575C0.0790928 5.4103 -0.222916 7.41536 0.146595 9.50642C0.535106 11.7105 1.66014 13.535 3.38869 14.9616C5.18125 16.4406 7.24581 17.1657 9.60138 17.0266C11.0319 16.9441 12.6245 16.7526 14.421 15.2321C14.874 15.4576 15.3496 15.5476 16.1381 15.6151C16.7456 15.6716 17.3306 15.5851 17.7836 15.4911C18.4931 15.3411 18.4441 14.6841 18.1876 14.5636C16.1081 13.595 16.5646 13.9891 16.1496 13.67C17.2061 12.42 18.8202 10.1979 19.3182 7.17235C19.3672 6.83834 19.4297 6.36783 19.4222 6.09732C19.4182 5.93231 19.4562 5.86831 19.6447 5.84931C20.1657 5.78931 20.6712 5.64681 21.1357 5.3913C22.4833 4.65528 23.0268 3.44624 23.1548 1.9972C23.1738 1.77569 23.1508 1.54668 22.9168 1.43018ZM11.1749 14.4736C9.15936 12.889 8.18184 12.3675 7.77832 12.39C7.40081 12.4125 7.46881 12.8445 7.55182 13.126C7.63882 13.404 7.75182 13.5955 7.91033 13.8396C8.01983 14.0011 8.09533 14.2411 7.80083 14.4216C7.15181 14.8231 6.02327 14.2866 5.97027 14.2601C4.65673 13.4865 3.5587 12.4655 2.78467 11.069C2.03715 9.72493 1.60314 8.28289 1.53164 6.74384C1.51264 6.37233 1.62214 6.24082 1.99215 6.17332C2.47916 6.08332 2.98118 6.06432 3.46769 6.13582C5.52476 6.43633 7.27581 7.35586 8.74385 8.8129C9.58188 9.64243 10.2159 10.634 10.8689 11.6025C11.5634 12.631 12.3105 13.611 13.262 14.4146C13.598 14.6961 13.866 14.9101 14.1225 15.0681C13.349 15.1546 12.058 15.1731 11.1749 14.4746L11.1749 14.4736ZM12.141 8.25988C12.141 8.09488 12.273 7.96338 12.439 7.96338C12.4765 7.96338 12.5105 7.97088 12.541 7.98188C12.5825 7.99688 12.6205 8.01938 12.6505 8.05338C12.7035 8.10588 12.7335 8.18088 12.7335 8.25988C12.7335 8.42489 12.6015 8.55639 12.4355 8.55639C12.2695 8.55639 12.141 8.42489 12.141 8.25988ZM15.1415 9.79893C14.949 9.87793 14.7565 9.94544 14.5715 9.95294C14.2845 9.96794 13.9715 9.85143 13.8015 9.70893C13.5375 9.48742 13.3485 9.36342 13.2695 8.97691C13.2355 8.8119 13.2545 8.55639 13.2845 8.40989C13.3525 8.09438 13.277 7.89187 13.0545 7.70787C12.8735 7.55786 12.643 7.51636 12.39 7.51636C12.2955 7.51636 12.209 7.47486 12.1445 7.44136C12.039 7.38886 11.9519 7.25735 12.035 7.09585C12.0615 7.04335 12.19 6.91584 12.22 6.89334C12.5635 6.69784 12.9595 6.76184 13.326 6.90834C13.6655 7.04735 13.9225 7.30236 14.292 7.66287C14.6695 8.09838 14.7375 8.21838 14.9525 8.54539C15.1225 8.8009 15.277 9.06341 15.3831 9.36392C15.4471 9.55142 15.3641 9.70493 15.1415 9.79893Z'
 
-    /** 等宽字体栈，黑客风格用。 */
-    var MONO_UI = "'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, 'PingFang SC', monospace"
-    /** 衬线字体栈，写作风格用。优先宋体，再退到西文衬线。 */
+    /** 原版轮廓按 22 × 16 像素重绘，保留头部留白、侧眼和分岔尾鳍。 */
+    var PIXEL_WHALE = [
+      '..........#....#......',
+      '....#######....##.....',
+      '..##########...###.###',
+      '.############..#######',
+      '.#############..#####.',
+      '###############.###...',
+      '##...##############...',
+      '##.....#####..####....',
+      '##......#####.####....',
+      '##.......#########....',
+      '.##.......#######.....',
+      '.###.......######.....',
+      '..###..###..####......',
+      '...########.#####.....',
+      '...##########.###.....',
+      '.....#######..........'
+    ]
+
+    /** 把每行相邻的着色像素写成一段直角路径。 */
+    function buildPixelWhalePath() {
+      var blocks = []
+      for (var y = 0; y < PIXEL_WHALE.length; y += 1) {
+        for (var run of PIXEL_WHALE[y].matchAll(/#+/g)) {
+          var width = run[0].length
+          blocks.push('M' + run.index + ' ' + y + 'h' + width + 'v1h-' + width + 'Z')
+        }
+      }
+      return blocks.join(' ')
+    }
+
+    /** 模块加载时生成一次，主题切换不重复计算。 */
+    var PIXEL_WHALE_PATH = buildPixelWhalePath()
+
+    /** 写作正文的字体栈，优先宋体。 */
     var SERIF_UI = "'Songti SC', 'Noto Serif SC', 'Source Han Serif SC', Georgia, 'Times New Roman', serif"
 
     /**
-     * 风格表。每套风格自带色板、字体、三档圆角和四个强调色。
+     * 风格表。每套风格自带色板、三档圆角和四个强调色。
      * 深浅两套色板的键必须完全一致，buildTokens 按键配对。
      */
     var STYLES = {
       minimal: {
         name: 'styleMinimal',
-        font: null,
         radii: {
           small: { xs: '3px', sm: '5px', md: '7px', lg: '10px', xl: '12px', panel: '16px' },
           medium: { xs: '5px', sm: '8px', md: '11px', lg: '14px', xl: '17px', panel: '20px' },
@@ -131,14 +164,13 @@ window.__ModuleLoader__.load({
 
       hacker: {
         name: 'styleHacker',
-        font: MONO_UI,
         radii: {
-          small: { xs: '0px', sm: '0px', md: '1px', lg: '2px', xl: '2px', panel: '4px' },
-          medium: { xs: '1px', sm: '2px', md: '3px', lg: '5px', xl: '6px', panel: '8px' },
-          large: { xs: '2px', sm: '4px', md: '6px', lg: '9px', xl: '12px', panel: '14px' }
+          small: { xs: '2px', sm: '4px', md: '6px', lg: '8px', xl: '10px', panel: '12px' },
+          medium: { xs: '3px', sm: '5px', md: '8px', lg: '11px', xl: '13px', panel: '16px' },
+          large: { xs: '4px', sm: '7px', md: '10px', lg: '14px', xl: '16px', panel: '20px' }
         },
         accents: [
-          { id: 'green', name: 'accGreen', light: { fill: '#1FCB6E', hover: '#19B561', link: '#118448' }, dark: { fill: '#1FCE74', hover: '#2BE08A', link: '#4CFFA6' } },
+          { id: 'green', name: 'accGreen', light: { fill: '#1FCB6E', hover: '#19B561', link: '#118448' }, dark: { fill: '#1FCE74', hover: '#2BE08A', link: '#60EEAA' } },
           { id: 'cyan', name: 'accCyan', light: { fill: '#0E9FBF', hover: '#0C8CA9', link: '#0B7D96' }, dark: { fill: '#12B4D6', hover: '#1FC9EC', link: '#4FE3FF' } },
           { id: 'amber', name: 'accAmber', light: { fill: '#B45309', hover: '#9A4708', link: '#A54C08' }, dark: { fill: '#C47610', hover: '#D98A16', link: '#FFB454' } },
           { id: 'steel', name: 'accSteel', light: { fill: '#3F6C8F', hover: '#365D7C', link: '#3A6584' }, dark: { fill: '#6FA6CC', hover: '#86B7D8', link: '#8FC2E0' } }
@@ -150,7 +182,7 @@ window.__ModuleLoader__.load({
           '--dsw-alias-bg-layer-3': '#FBFDF9',
           '--dsw-alias-bg-overlay': '#DDE5D9',
           '--dsw-alias-bg-module-platform': '#E3EAE0',
-          '--dsw-specific-sidebar-fill': 'repeating-linear-gradient(180deg, rgba(12, 40, 24, 0.045) 0px, rgba(12, 40, 24, 0.045) 1px, transparent 1px, transparent 4px), linear-gradient(180deg, #E3E9DF 0%, #DDE5D9 100%)',
+          '--dsw-specific-sidebar-fill': '#DEE7DF',
           '--dsw-specific-input-major': '#FAFDF8',
           '--dsw-alias-card-fill': '#F7FBF4',
           '--dsw-alias-card-fill-hover': '#EDF3E9',
@@ -178,27 +210,27 @@ window.__ModuleLoader__.load({
           '--dsw-elevation-soft': '0 0 0 0.5px rgba(12, 40, 24, 0.12), 0 4px 14px rgba(12, 40, 24, 0.07)'
         },
         dark: {
-          '--dsw-alias-bg-base': '#05080A',
-          '--dsw-alias-bg-layer-1': '#0A1013',
-          '--dsw-alias-bg-layer-2': '#0E1619',
-          '--dsw-alias-bg-layer-3': '#131C20',
+          '--dsw-alias-bg-base': '#0D1215',
+          '--dsw-alias-bg-layer-1': '#151D21',
+          '--dsw-alias-bg-layer-2': '#1B2428',
+          '--dsw-alias-bg-layer-3': '#222C30',
           '--dsw-alias-bg-overlay': '#16211F',
           '--dsw-alias-bg-module-platform': '#0D1517',
-          '--dsw-specific-sidebar-fill': 'repeating-linear-gradient(180deg, rgba(140, 205, 170, 0.05) 0px, rgba(140, 205, 170, 0.05) 1px, transparent 1px, transparent 4px), linear-gradient(180deg, #070D0F 0%, #0A1315 100%)',
-          '--dsw-specific-input-major': '#0D1518',
+          '--dsw-specific-sidebar-fill': '#141C20',
+          '--dsw-specific-input-major': '#151D21',
           '--dsw-alias-card-fill': '#0C1417',
           '--dsw-alias-card-fill-hover': '#121C20',
           '--dsw-alias-markdown-code-block': '#060E0C',
           '--dsw-alias-markdown-code-block-banner': '#0A1412',
-          '--dsw-alias-markdown-inline-code': '#0E1815',
+          '--dsw-alias-markdown-inline-code': '#182321',
           '--dsw-alias-border-l1': 'rgba(140, 205, 170, 0.08)',
           '--dsw-alias-border-l2': 'rgba(140, 205, 170, 0.12)',
           '--dsw-alias-border-l3': 'rgba(140, 205, 170, 0.16)',
           '--dsw-alias-border-l4': 'rgba(140, 205, 170, 0.22)',
-          '--dsw-alias-label-primary': '#D7DDDE',
-          '--dsw-alias-label-secondary': '#98A3A5',
-          '--dsw-alias-label-tertiary': '#6E797B',
-          '--dsw-alias-label-caption': '#636D70',
+          '--dsw-alias-label-primary': '#E0E7E7',
+          '--dsw-alias-label-secondary': '#A3AFB1',
+          '--dsw-alias-label-tertiary': '#899699',
+          '--dsw-alias-label-caption': '#7D8A8D',
           '--dsw-alias-label-on-color': '#04120A',
           '--dsw-alias-interactive-bg-hover': 'rgba(200, 230, 215, 0.06)',
           '--dsw-alias-interactive-bg-hover-solid': '#10201A',
@@ -215,89 +247,87 @@ window.__ModuleLoader__.load({
 
       writing: {
         name: 'styleWriting',
-        font: SERIF_UI,
         radii: {
           small: { xs: '4px', sm: '6px', md: '9px', lg: '12px', xl: '15px', panel: '20px' },
           medium: { xs: '6px', sm: '9px', md: '13px', lg: '17px', xl: '21px', panel: '26px' },
           large: { xs: '10px', sm: '14px', md: '20px', lg: '26px', xl: '32px', panel: '36px' }
         },
         accents: [
-          { id: 'sepia', name: 'accSepia', light: { fill: '#9A4B2F', hover: '#873F27', link: '#8E452B' }, dark: { fill: '#B85B37', hover: '#CC6B44', link: '#E08A63' } },
-          { id: 'forest', name: 'accForest', light: { fill: '#3F5F45', hover: '#36523B', link: '#3A5840' }, dark: { fill: '#4F7355', hover: '#5C8462', link: '#8FB894' } },
-          { id: 'brick', name: 'accBrick', light: { fill: '#8E3B2E', hover: '#7B3328', link: '#86382C' }, dark: { fill: '#A85A44', hover: '#BC6C54', link: '#D89A86' } },
-          { id: 'ink', name: 'accInk', light: { fill: '#2A2520', hover: '#211D19', link: '#262119' }, dark: { fill: '#4A4238', hover: '#5A5145', link: '#CDBFA8' } }
+          { id: 'writing-ink', name: 'accWritingInk', light: { fill: '#3E615D', hover: '#32534F', link: '#355A56' }, dark: { fill: '#456B64', hover: '#51776F', link: '#9AC7BD' } },
+          { id: 'brass', name: 'accBrass', light: { fill: '#7C5E31', hover: '#6C5028', link: '#74562A' }, dark: { fill: '#785F38', hover: '#856B41', link: '#D2B786' } },
+          { id: 'seal', name: 'accSeal', light: { fill: '#854F53', hover: '#734146', link: '#7C464C' }, dark: { fill: '#84545A', hover: '#905F65', link: '#D7A5AA' } },
+          { id: 'writing-graphite', name: 'accWritingGraphite', light: { fill: '#505950', hover: '#424B42', link: '#495349' }, dark: { fill: '#5A635B', hover: '#666E65', link: '#B9C4B9' } }
         ],
         light: {
-          '--dsw-alias-bg-base': '#F3EFE7',
-          '--dsw-alias-bg-layer-1': '#FFFDF9',
-          '--dsw-alias-bg-layer-2': '#FFFEFC',
+          '--dsw-alias-bg-base': '#F8F7F3',
+          '--dsw-alias-bg-layer-1': '#FCFBF8',
+          '--dsw-alias-bg-layer-2': '#FFFFFF',
           '--dsw-alias-bg-layer-3': '#FFFFFF',
-          '--dsw-alias-bg-overlay': '#EDE8DE',
-          '--dsw-alias-bg-module-platform': '#F1EDE4',
-          '--dsw-specific-sidebar-fill': 'linear-gradient(180deg, #F0EBE1 0%, #F4EFE7 100%)',
-          '--dsw-specific-input-major': 'linear-gradient(180deg, #FFFDFA 0%, #FBF6EC 100%)',
-          '--dsw-alias-card-fill': '#FBF7EF',
-          '--dsw-alias-card-fill-hover': '#F5F0E6',
-          '--dsw-alias-markdown-code-block': '#F1ECE2',
-          '--dsw-alias-markdown-code-block-banner': '#EAE4D8',
-          '--dsw-alias-markdown-inline-code': '#EFEAE0',
-          '--dsw-alias-border-l1': 'rgba(52, 45, 36, 0.12)',
-          '--dsw-alias-border-l2': 'rgba(52, 45, 36, 0.16)',
-          '--dsw-alias-border-l3': 'rgba(52, 45, 36, 0.20)',
-          '--dsw-alias-border-l4': 'rgba(52, 45, 36, 0.26)',
-          '--dsw-alias-label-primary': '#1F1C18',
-          '--dsw-alias-label-secondary': '#4E4A43',
-          '--dsw-alias-label-tertiary': '#6F6A62',
-          '--dsw-alias-label-caption': '#78736B',
-          '--dsw-alias-interactive-bg-hover': 'rgba(52, 45, 36, 0.05)',
-          '--dsw-alias-interactive-bg-hover-solid': '#EFEAE0',
-          '--dsw-shadow-lv1': '0 1px 2px rgba(52, 45, 36, 0.07)',
-          '--dsw-shadow-lv1-blur': '0 4px 10px rgba(52, 45, 36, 0.05)',
-          '--dsw-shadow-lv2': '0 2px 8px rgba(52, 45, 36, 0.08), 0 1px 2px rgba(52, 45, 36, 0.05)',
-          '--dsw-shadow-lv3': '0 12px 30px rgba(52, 45, 36, 0.12), 0 2px 8px rgba(52, 45, 36, 0.07)',
-          '--dsw-elevation-stroke-color': 'rgba(52, 45, 36, 0.14)',
-          '--dsw-elevation-panel': '0 0 0 0.5px rgba(52, 45, 36, 0.14), 0 2px 8px rgba(52, 45, 36, 0.06)',
-          '--dsw-elevation-prominent': '0 0 0 0.5px rgba(52, 45, 36, 0.14), 0 6px 20px rgba(52, 45, 36, 0.10)',
-          '--dsw-elevation-soft': '0 0 0 0.5px rgba(52, 45, 36, 0.14), 0 4px 14px rgba(52, 45, 36, 0.07)'
+          '--dsw-alias-bg-overlay': '#EBEAE4',
+          '--dsw-alias-bg-module-platform': '#F0EFE9',
+          '--dsw-specific-sidebar-fill': '#EEEDE7',
+          '--dsw-specific-input-major': '#FFFFFF',
+          '--dsw-alias-card-fill': '#FBFAF7',
+          '--dsw-alias-card-fill-hover': '#F0EFE9',
+          '--dsw-alias-markdown-code-block': '#F0EFEA',
+          '--dsw-alias-markdown-code-block-banner': '#E9E8E2',
+          '--dsw-alias-markdown-inline-code': '#EEEDE8',
+          '--dsw-alias-border-l1': 'rgba(46, 51, 45, 0.12)',
+          '--dsw-alias-border-l2': 'rgba(46, 51, 45, 0.16)',
+          '--dsw-alias-border-l3': 'rgba(46, 51, 45, 0.20)',
+          '--dsw-alias-border-l4': 'rgba(46, 51, 45, 0.26)',
+          '--dsw-alias-label-primary': '#242724',
+          '--dsw-alias-label-secondary': '#535A55',
+          '--dsw-alias-label-tertiary': '#64695F',
+          '--dsw-alias-label-caption': '#666B61',
+          '--dsw-alias-interactive-bg-hover': 'rgba(46, 51, 45, 0.05)',
+          '--dsw-alias-interactive-bg-hover-solid': '#EEEDE8',
+          '--dsw-shadow-lv1': '0 1px 2px rgba(46, 51, 45, 0.07)',
+          '--dsw-shadow-lv1-blur': '0 4px 10px rgba(46, 51, 45, 0.05)',
+          '--dsw-shadow-lv2': '0 2px 8px rgba(46, 51, 45, 0.08), 0 1px 2px rgba(46, 51, 45, 0.05)',
+          '--dsw-shadow-lv3': '0 12px 30px rgba(46, 51, 45, 0.12), 0 2px 8px rgba(46, 51, 45, 0.07)',
+          '--dsw-elevation-stroke-color': 'rgba(46, 51, 45, 0.14)',
+          '--dsw-elevation-panel': '0 0 0 0.5px rgba(46, 51, 45, 0.14), 0 2px 8px rgba(46, 51, 45, 0.06)',
+          '--dsw-elevation-prominent': '0 0 0 0.5px rgba(46, 51, 45, 0.14), 0 6px 20px rgba(46, 51, 45, 0.10)',
+          '--dsw-elevation-soft': '0 0 0 0.5px rgba(46, 51, 45, 0.14), 0 4px 14px rgba(46, 51, 45, 0.07)'
         },
         dark: {
-          '--dsw-alias-bg-base': '#151310',
-          '--dsw-alias-bg-layer-1': '#1D1A16',
-          '--dsw-alias-bg-layer-2': '#24211C',
-          '--dsw-alias-bg-layer-3': '#2C2823',
-          '--dsw-alias-bg-overlay': '#29251F',
-          '--dsw-alias-bg-module-platform': '#221F1A',
-          '--dsw-specific-sidebar-fill': 'linear-gradient(180deg, #131110 0%, #17140F 100%)',
-          '--dsw-specific-input-major': 'linear-gradient(180deg, #211E19 0%, #1C1915 100%)',
-          '--dsw-alias-card-fill': '#1F1C17',
-          '--dsw-alias-card-fill-hover': '#272319',
-          '--dsw-alias-markdown-code-block': '#181614',
-          '--dsw-alias-markdown-code-block-banner': '#201D18',
-          '--dsw-alias-markdown-inline-code': '#221F1A',
-          '--dsw-alias-border-l1': 'rgba(230, 222, 205, 0.10)',
-          '--dsw-alias-border-l2': 'rgba(230, 222, 205, 0.14)',
-          '--dsw-alias-border-l3': 'rgba(230, 222, 205, 0.18)',
-          '--dsw-alias-border-l4': 'rgba(230, 222, 205, 0.24)',
-          '--dsw-alias-label-primary': '#ECE7DE',
-          '--dsw-alias-label-secondary': '#ADA69A',
-          '--dsw-alias-label-tertiary': '#8C857A',
-          '--dsw-alias-label-caption': '#7C7569',
-          '--dsw-alias-interactive-bg-hover': 'rgba(230, 222, 205, 0.06)',
-          '--dsw-alias-interactive-bg-hover-solid': '#29251F',
+          '--dsw-alias-bg-base': '#1B1C19',
+          '--dsw-alias-bg-layer-1': '#242522',
+          '--dsw-alias-bg-layer-2': '#282A26',
+          '--dsw-alias-bg-layer-3': '#30332E',
+          '--dsw-alias-bg-overlay': '#2D2F2B',
+          '--dsw-alias-bg-module-platform': '#272923',
+          '--dsw-specific-sidebar-fill': '#242520',
+          '--dsw-specific-input-major': '#292A25',
+          '--dsw-alias-card-fill': '#292A25',
+          '--dsw-alias-card-fill-hover': '#30322B',
+          '--dsw-alias-markdown-code-block': '#21231F',
+          '--dsw-alias-markdown-code-block-banner': '#2A2D27',
+          '--dsw-alias-markdown-inline-code': '#272923',
+          '--dsw-alias-border-l1': 'rgba(205, 211, 195, 0.10)',
+          '--dsw-alias-border-l2': 'rgba(205, 211, 195, 0.14)',
+          '--dsw-alias-border-l3': 'rgba(205, 211, 195, 0.18)',
+          '--dsw-alias-border-l4': 'rgba(205, 211, 195, 0.24)',
+          '--dsw-alias-label-primary': '#EBEAE3',
+          '--dsw-alias-label-secondary': '#BFC1B6',
+          '--dsw-alias-label-tertiary': '#A3AA9F',
+          '--dsw-alias-label-caption': '#A0A69B',
+          '--dsw-alias-interactive-bg-hover': 'rgba(205, 211, 195, 0.06)',
+          '--dsw-alias-interactive-bg-hover-solid': '#2D2F2B',
           '--dsw-shadow-lv1': '0 1px 2px rgba(0, 0, 0, 0.4)',
           '--dsw-shadow-lv1-blur': '0 4px 10px rgba(0, 0, 0, 0.3)',
           '--dsw-shadow-lv2': '0 2px 8px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3)',
           '--dsw-shadow-lv3': '0 12px 30px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35)',
-          '--dsw-elevation-stroke-color': 'rgba(230, 222, 205, 0.12)',
-          '--dsw-elevation-panel': '0 0 0 0.5px rgba(230, 222, 205, 0.12), 0 2px 8px rgba(0, 0, 0, 0.4)',
-          '--dsw-elevation-prominent': '0 0 0 0.5px rgba(230, 222, 205, 0.16), 0 6px 20px rgba(0, 0, 0, 0.45)',
-          '--dsw-elevation-soft': '0 0 0 0.5px rgba(230, 222, 205, 0.10), 0 4px 14px rgba(0, 0, 0, 0.35)'
+          '--dsw-elevation-stroke-color': 'rgba(205, 211, 195, 0.12)',
+          '--dsw-elevation-panel': '0 0 0 0.5px rgba(205, 211, 195, 0.12), 0 2px 8px rgba(0, 0, 0, 0.4)',
+          '--dsw-elevation-prominent': '0 0 0 0.5px rgba(205, 211, 195, 0.16), 0 6px 20px rgba(0, 0, 0, 0.45)',
+          '--dsw-elevation-soft': '0 0 0 0.5px rgba(205, 211, 195, 0.10), 0 4px 14px rgba(0, 0, 0, 0.35)'
         }
       },
 
       sketch: {
         name: 'styleSketch',
-        font: null,
         radii: {
           small: { xs: '3px', sm: '4px', md: '6px', lg: '8px', xl: '10px', panel: '12px' },
           medium: { xs: '4px', sm: '6px', md: '8px', lg: '12px', xl: '14px', panel: '16px' },
@@ -316,7 +346,7 @@ window.__ModuleLoader__.load({
           '--dsw-alias-bg-layer-3': '#FFFFFF',
           '--dsw-alias-bg-overlay': '#EDEDED',
           '--dsw-alias-bg-module-platform': '#E8E8E8',
-          '--dsw-specific-sidebar-fill': 'repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.045) 0 1px, transparent 1px 6px), linear-gradient(180deg, #F2F2F2 0%, #ECECEC 100%)',
+          '--dsw-specific-sidebar-fill': 'linear-gradient(transparent, #ECECEC) top / 100% 72px no-repeat, repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.035) 0 1px, transparent 1px 7px) top / 100% 72px no-repeat, #ECECEC',
           '--dsw-specific-input-major': '#FFFFFF',
           '--dsw-alias-card-fill': '#FFFFFF',
           '--dsw-alias-card-fill-hover': '#F2F2F2',
@@ -325,7 +355,7 @@ window.__ModuleLoader__.load({
           '--dsw-alias-markdown-inline-code': '#EFEFEF',
           '--dsw-alias-border-l1': 'rgba(0, 0, 0, 0.12)',
           '--dsw-alias-border-l2': 'rgba(0, 0, 0, 0.16)',
-          '--dsw-alias-border-l3': 'rgba(0, 0, 0, 0.22)',
+          '--dsw-alias-border-l3': 'rgba(0, 0, 0, 0.14)',
           '--dsw-alias-border-l4': 'rgba(0, 0, 0, 0.30)',
           '--dsw-alias-label-primary': '#111111',
           '--dsw-alias-label-secondary': '#3A3A3A',
@@ -350,7 +380,7 @@ window.__ModuleLoader__.load({
           '--dsw-alias-bg-layer-3': '#2C2C2C',
           '--dsw-alias-bg-overlay': '#2E2E2E',
           '--dsw-alias-bg-module-platform': '#202020',
-          '--dsw-specific-sidebar-fill': 'repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 6px), linear-gradient(180deg, #181818 0%, #111111 100%)',
+          '--dsw-specific-sidebar-fill': 'linear-gradient(transparent, #1B1B1B) top / 100% 72px no-repeat, repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 7px) top / 100% 72px no-repeat, #1B1B1B',
           '--dsw-specific-input-major': '#1F1F1F',
           '--dsw-alias-card-fill': '#1C1C1C',
           '--dsw-alias-card-fill-hover': '#242424',
@@ -359,7 +389,7 @@ window.__ModuleLoader__.load({
           '--dsw-alias-markdown-inline-code': '#232323',
           '--dsw-alias-border-l1': 'rgba(255, 255, 255, 0.14)',
           '--dsw-alias-border-l2': 'rgba(255, 255, 255, 0.18)',
-          '--dsw-alias-border-l3': 'rgba(255, 255, 255, 0.24)',
+          '--dsw-alias-border-l3': 'rgba(255, 255, 255, 0.14)',
           '--dsw-alias-border-l4': 'rgba(255, 255, 255, 0.32)',
           '--dsw-alias-label-primary': '#F2F2F2',
           '--dsw-alias-label-secondary': '#C0C0C0',
@@ -408,11 +438,23 @@ window.__ModuleLoader__.load({
       '--dsw-alias-border-selected'
     ]
 
+    /** 读取旧版写作偏好时，映射到新色板中最接近的色卡。 */
+    var EDITORIAL_ACCENT_ALIASES = {
+      sepia: 'writing-ink',
+      forest: 'writing-ink',
+      brick: 'seal',
+      ink: 'writing-graphite',
+      iris: 'writing-ink',
+      storm: 'writing-ink',
+      plum: 'seal',
+      'editorial-ink': 'writing-graphite'
+    }
+
     /** 设置行和控件文案。 */
     var STRINGS = {
       zh: {
-        title: '界面配色与圆角',
-        description: '整套外观：配色、字体、圆角、阴影。只对当前浏览器生效。',
+        title: '界面皮肤',
+        description: '外观偏好保存在当前浏览器。',
         style: '风格',
         accent: '强调色',
         radius: '圆角半径',
@@ -437,10 +479,10 @@ window.__ModuleLoader__.load({
         accGreen: '荧光绿',
         accCyan: '电子青',
         accSteel: '钢蓝',
-        accSepia: '赭石',
-        accForest: '墨绿',
-        accBrick: '砖红',
-        accInk: '墨',
+        accWritingInk: '墨青',
+        accBrass: '黄铜',
+        accSeal: '印泥红',
+        accWritingGraphite: '石墨',
         accInkPen: '墨',
         accBlue: '蓝',
         accPink: '粉',
@@ -448,8 +490,8 @@ window.__ModuleLoader__.load({
         accSage: '苔绿'
       },
       en: {
-        title: 'Colors & corners',
-        description: 'One whole look: colors, fonts, corners, and shadows. Applies to this browser only.',
+        title: 'Interface skin',
+        description: 'Appearance preferences are saved in this browser.',
         style: 'Style',
         accent: 'Accent',
         radius: 'Corner radius',
@@ -474,10 +516,10 @@ window.__ModuleLoader__.load({
         accGreen: 'Phosphor',
         accCyan: 'Cyan',
         accSteel: 'Steel blue',
-        accSepia: 'Sepia',
-        accForest: 'Forest',
-        accBrick: 'Brick',
-        accInk: 'Ink',
+        accWritingInk: 'Ink green',
+        accBrass: 'Brass',
+        accSeal: 'Seal red',
+        accWritingGraphite: 'Graphite',
         accInkPen: 'Ink',
         accBlue: 'Blue',
         accPink: 'Pink',
@@ -486,34 +528,456 @@ window.__ModuleLoader__.load({
       }
     }
 
-    /** 设置行样式。全部走主题 token，跟随深浅色。 */
+    /** Markdown 容器在宿主构建中有普通类名和 CSS Module 类名两种形式。 */
+    var CHAT_PROSE = '[data-slot="conversation.chat.node"] :is(.markdown, [class*="_markdown_"])'
+
+    /** 品牌布局只覆盖侧栏品牌槽，版本检查插件仍负责状态和交互。 */
+    var SIDEBAR_BRAND = 'body[data-dsh-skin-style] [data-slot="sidebar.brand.name"]'
+
+    /** 插件布局走宿主槽位和语义属性，设置控件使用 dsk 私有类。 */
+    var LAYOUT_CSS = `
+      /* 设置面板：预览优先，个性化选项按面板可用宽度排列。 */
+      .dsk-row {
+        container: dsk-settings / inline-size;
+        display: grid;
+        gap: 16px;
+        padding: 18px 0;
+        border-block-end: 1px solid var(--dsw-alias-border-l2);
+      }
+
+      .dsk-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .dsk-title { color: var(--dsw-alias-label-primary); font-size: 14px; font-weight: 600; line-height: 22px; }
+      .dsk-desc { margin-block-start: 3px; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 18px; }
+      .dsk-warn { color: var(--dsw-alias-state-warn-label); font-size: 12px; line-height: 18px; }
+      .dsk-group { display: grid; min-inline-size: 0; gap: 8px; align-content: start; }
+      .dsk-label { color: var(--dsw-alias-label-secondary); font-size: 12px; font-weight: 600; line-height: 18px; }
+
+      .dsk-presets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .dsk-options {
+        display: grid;
+        gap: 14px;
+        padding: 12px;
+        border: 1px solid var(--dsw-alias-border-l2);
+        border-radius: var(--dsw-radius-lg);
+      }
+
+      @container dsk-settings (min-width: 420px) {
+        .dsk-presets { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      }
+
+      @container dsk-settings (min-width: 550px) {
+        .dsk-options { grid-template-columns: 140px minmax(0, 0.85fr) minmax(0, 1.15fr); }
+      }
+
+      .dsk-row button { box-sizing: border-box; font: inherit; color: inherit; cursor: pointer; }
+      .dsk-row button:focus-visible { outline: 2px solid var(--dsw-alias-link); outline-offset: 2px; }
+
+      .dsk-row .dsk-preset {
+        display: grid;
+        gap: 7px;
+        min-inline-size: 0;
+        padding: 6px;
+        border: 1px solid var(--dsw-alias-border-l3);
+        border-radius: var(--dsw-radius-md);
+        background: var(--dsw-alias-bg-layer-1);
+        text-align: start;
+      }
+
+      .dsk-row .dsk-preset[aria-pressed="true"] {
+        border-color: var(--dsw-alias-border-selected);
+        box-shadow: inset 0 0 0 1px var(--dsw-alias-border-selected);
+      }
+
+      .dsk-preset-name {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 4px;
+        min-block-size: 19px;
+        padding-inline: 3px;
+        overflow-wrap: anywhere;
+        color: var(--dsw-alias-label-primary);
+        font-size: 12px;
+        line-height: 18px;
+      }
+
+      .dsk-preset[aria-pressed="true"] .dsk-preset-name { font-weight: 600; }
+      .dsk-preset[aria-pressed="true"] .dsk-preset-name::after {
+        content: '';
+        box-sizing: border-box;
+        flex: 0 0 6px;
+        block-size: 10px;
+        border: solid var(--dsw-alias-link);
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg) translate(-2px, -1px);
+      }
+
+      /* 预览使用各套风格的画布、侧栏、面板和强调色。 */
+      .dsk-preview {
+        --dsk-preview-canvas: var(--dsk-preview-canvas-light);
+        --dsk-preview-rail: var(--dsk-preview-rail-light);
+        --dsk-preview-surface: var(--dsk-preview-surface-light);
+        --dsk-preview-accent: var(--dsk-preview-accent-light);
+        position: relative;
+        display: block;
+        box-sizing: border-box;
+        block-size: 54px;
+        border: 1px solid var(--dsw-alias-border-l2);
+        border-radius: var(--dsk-preview-radius);
+        background: var(--dsk-preview-canvas);
+        overflow: hidden;
+      }
+
+      .dsk-preview::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        inline-size: 26%;
+        background: var(--dsk-preview-rail);
+        border-inline-end: 1px solid var(--dsw-alias-border-l2);
+      }
+
+      .dsk-preview::after {
+        content: '';
+        position: absolute;
+        inset: 9px auto auto 7%;
+        inline-size: 12%;
+        block-size: 3px;
+        border-radius: var(--dsk-preview-radius);
+        background: var(--dsk-preview-accent);
+      }
+
+      .dsk-preview-panel {
+        position: absolute;
+        inset: 12px 10% 12px 37%;
+        border: 1px solid var(--dsw-alias-border-l2);
+        border-radius: var(--dsk-preview-radius);
+        background: linear-gradient(var(--dsk-preview-accent), var(--dsk-preview-accent)) 82% 74% / 7px 7px no-repeat,
+          linear-gradient(var(--dsk-preview-accent), var(--dsk-preview-accent)) 22% 35% / 43% 2px no-repeat,
+          var(--dsk-preview-surface);
+      }
+
+      body[data-ds-dark-theme] .dsk-preview {
+        --dsk-preview-canvas: var(--dsk-preview-canvas-dark);
+        --dsk-preview-rail: var(--dsk-preview-rail-dark);
+        --dsk-preview-surface: var(--dsk-preview-surface-dark);
+        --dsk-preview-accent: var(--dsk-preview-accent-dark);
+      }
+
+      .dsk-swatches { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+      .dsk-row .dsk-swatch {
+        display: grid;
+        place-items: center;
+        inline-size: 30px;
+        block-size: 32px;
+        padding: 0;
+        border: 0;
+        border-radius: var(--dsw-radius-sm);
+        background: transparent;
+      }
+
+      .dsk-swatch::before {
+        content: '';
+        inline-size: 18px;
+        block-size: 18px;
+        border-radius: 50%;
+        corner-shape: round;
+        background: var(--dsk-fill);
+        box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.35);
+      }
+
+      body[data-ds-dark-theme] .dsk-swatch::before { background: var(--dsk-fill-dark); }
+      .dsk-swatch[aria-pressed="true"]::before { outline: 1px solid var(--dsw-alias-label-primary); outline-offset: 3px; }
+
+      .dsk-segments {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(min-content, 1fr));
+        gap: 2px;
+        padding: 2px;
+        border-radius: var(--dsw-radius-md);
+        background: var(--dsw-alias-bg-module-platform);
+      }
+
+      .dsk-row .dsk-chip {
+        min-block-size: 28px;
+        padding: 3px 2px;
+        border: 1px solid transparent;
+        border-radius: var(--dsw-radius-sm);
+        background: transparent;
+        color: var(--dsw-alias-label-secondary);
+        font-size: 12px;
+        line-height: 16px;
+        overflow-wrap: normal;
+      }
+
+      .dsk-row .dsk-chip[aria-pressed="true"] {
+        border-color: var(--dsw-alias-border-l3);
+        background: var(--dsw-alias-bg-layer-1);
+        color: var(--dsw-alias-label-primary);
+        font-weight: 600;
+      }
+
+      .dsk-row .dsk-switch {
+        position: relative;
+        flex: 0 0 36px;
+        block-size: 22px;
+        margin-block-start: 1px;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: var(--dsw-alias-state-idle-primary);
+      }
+
+      .dsk-row .dsk-switch[aria-checked="true"] { background: var(--dsw-alias-button-info-fill); }
+      .dsk-knob {
+        position: absolute;
+        inset: 3px auto auto 3px;
+        inline-size: 16px;
+        block-size: 16px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 150ms ease;
+      }
+
+      .dsk-switch[aria-checked="true"] .dsk-knob { transform: translateX(14px); }
+      .dsk-row .dsk-reset {
+        justify-self: start;
+        min-block-size: 26px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--dsw-alias-label-secondary);
+        font-size: 12px;
+        line-height: 18px;
+      }
+
+      .dsk-row .dsk-reset:disabled { color: var(--dsw-alias-label-caption); cursor: default; }
+      @media (hover: hover) {
+        .dsk-row .dsk-preset:not([aria-pressed="true"]):hover { background: var(--dsw-alias-card-fill-hover); }
+        .dsk-row :is(.dsk-chip:not([aria-pressed="true"]), .dsk-swatch):hover { background: var(--dsw-alias-interactive-bg-hover); }
+        .dsk-row .dsk-reset:hover:not(:disabled) { color: var(--dsw-alias-label-primary); text-decoration: underline; }
+      }
+
+      /* 四套皮肤使用相同的品牌空间，折叠时跟随宿主的展开按钮。 */
+      body[data-dsh-skin-style] [data-slot="sidebar"] [class*="brandIdentity"]:has([data-slot="sidebar.brand.mark"]) {
+        inline-size: 100%;
+        block-size: 44px;
+        gap: 8px;
+      }
+
+      body[data-dsh-skin-style] [data-slot="sidebar"] [class*="brandName"]:has(> [data-slot="sidebar.brand.name"]) {
+        flex: 1;
+        block-size: auto;
+        letter-spacing: 0;
+      }
+
+      body[data-dsh-skin-style] [data-slot="sidebar.brand.mark"] .dsk-brand-mark {
+        display: grid;
+        flex: none;
+        place-items: center;
+        inline-size: 44px;
+        block-size: 44px;
+        color: var(--dsw-alias-link);
+      }
+
+      body[data-dsh-skin-style] [data-sidebar-toggle] [data-slot="sidebar.brand.mark"] .dsk-brand-mark {
+        inline-size: 32px;
+        block-size: 32px;
+      }
+
+      body[data-dsh-skin-style] [data-sidebar-toggle] .dsk-brand-mark > svg {
+        inline-size: 30px;
+        block-size: 30px;
+      }
+
+      /* 同时支持版本检查插件和宿主本地构建的备用品牌文字。 */
+      ${SIDEBAR_BRAND} :is(.dsvc-brand, [data-copy-version]) {
+        display: grid;
+        align-content: center;
+        justify-items: start;
+        gap: 4px;
+        min-inline-size: 0;
+        max-inline-size: 100%;
+        block-size: 36px;
+        text-align: start;
+      }
+
+      ${SIDEBAR_BRAND} :is(.dsvc-brand-title, [class*="localBuildTitle"], [class*="fallbackBrandName"]) {
+        display: block;
+        max-inline-size: 100%;
+        overflow: hidden;
+        color: var(--dsw-alias-label-primary);
+        font-family: var(--dsw-font-family);
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 16px;
+        letter-spacing: 0;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      ${SIDEBAR_BRAND} .dsvc-brand-line {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        max-inline-size: 100%;
+        overflow: hidden;
+      }
+
+      ${SIDEBAR_BRAND} :is(.dsvc-pill, [class*="buildVersion"]) {
+        display: block;
+        flex: 0 1 auto;
+        min-inline-size: 0;
+        max-inline-size: 100%;
+        block-size: auto;
+        padding: 0;
+        overflow: hidden;
+        background: transparent;
+        color: var(--dsw-alias-label-secondary);
+        font-family: var(--ds-font-family-code);
+        font-size: 10px;
+        font-weight: 500;
+        line-height: 12px;
+        letter-spacing: 0;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      ${SIDEBAR_BRAND} .dsvc-state {
+        flex: 0 1 auto;
+        min-inline-size: 0;
+        font-family: var(--dsw-font-family);
+        font-size: 10px;
+        font-weight: 500;
+        line-height: 12px;
+        letter-spacing: 0;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      ${SIDEBAR_BRAND} .dsvc-state-available { color: var(--dsw-alias-link); }
+
+      ${SIDEBAR_BRAND} .dsvc-brand:focus-visible {
+        outline: 1px solid var(--dsw-alias-link);
+        outline-offset: -1px;
+        box-shadow: none;
+      }
+
+      /* 展开侧栏的入口共用尺寸与对齐，颜色和笔触由主题决定。 */
+      body[data-dsh-skin-style] [data-slot="sidebar.session.action"] button:has([class*="newSessionContent"] > [class*="newSessionLabel"]) {
+        height: 38px;
+        padding: 0 9px;
+        border: 1px solid var(--dsw-alias-border-l3);
+        border-radius: var(--dsw-radius-md);
+        background: var(--dsk-session-fill, var(--dsw-alias-bg-layer-1));
+        color: var(--dsw-alias-label-primary);
+        box-shadow: var(--dsk-session-shadow, none);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      body[data-dsh-skin-style] [data-slot="sidebar.session.action"] [class*="newSessionContent"]:has(> [class*="newSessionLabel"]) {
+        justify-content: flex-start;
+        inline-size: auto;
+        gap: 8px;
+      }
+
+      body[data-dsh-skin-style] [data-slot="sidebar.session.action"] [class*="newSessionContent"] > [class*="newSessionLabel"] {
+        text-overflow: ellipsis;
+      }
+
+      body[data-dsh-skin-style="hacker"] {
+        --dsk-session-shadow: inset 2px 0 0 var(--dsw-alias-link);
+      }
+
+      body[data-dsh-skin-style="hacker"] [data-slot="sidebar.session.action"] [class*="newSessionContent"] > svg {
+        color: var(--dsw-alias-link);
+      }
+
+      body[data-dsh-skin-style] [data-slot="sidebar.workspaces"] [data-row-key^="session:"][aria-selected="true"] {
+        background-color: color-mix(in srgb, var(--dsw-alias-link) 10%, transparent);
+      }
+
+      body[data-dsh-skin-style="writing"] {
+        --dsk-session-fill: color-mix(in srgb, var(--dsw-alias-link) 5%, var(--dsw-alias-bg-layer-1));
+      }
+
+      body[data-dsh-skin-style="sketch"] {
+        --dsk-session-shadow: 1px 1px 0 var(--dsw-alias-border-l3);
+      }
+
+      @media (hover: hover) {
+        body[data-dsh-skin-style] [data-slot="sidebar.session.action"] button:has([class*="newSessionContent"] > [class*="newSessionLabel"]):hover {
+          background: color-mix(in srgb, var(--dsw-alias-link) 8%, var(--dsw-alias-bg-layer-1));
+        }
+      }
+
+      /* 会话正文的宿主边距比输入区多 16px。使用同一宽度轴与边距，
+         保留窗口缩放、用户拖拽列宽和窄屏时的自适应计算。 */
+      body[data-dsh-skin-style] [data-slot="main.conversation"] [data-content-phase="active"]:has([data-slot="conversation.chat.flow"]) {
+        --dsh-composer-card-max-width: var(--dsh-chat-content-width);
+      }
+
+      body[data-dsh-skin-style] [data-slot="main.conversation"] [data-content-phase="active"]
+        [data-conversation-scroll]:has([data-slot="conversation.chat.flow"]) > [data-composer-seat] {
+        padding-inline: 16px;
+      }
+
+      /* 完成时长是辅助信息，回复正文从它下方的细线开始。 */
+      body[data-dsh-skin-style] [data-slot="main.conversation"] [data-turn-process] {
+        height: calc(29px + var(--dsh-content-font-delta, 0px));
+        font-size: calc(12px + var(--dsh-content-font-delta-secondary, 0px));
+      }
+
+      /* 只装饰可编辑的会话输入框，工作区选择器继续用宿主的虚线反馈。 */
+      body[data-dsh-skin-style] [data-slot="main.conversation"] [data-composer-card]:has([data-composer-input][contenteditable="true"]) {
+        box-shadow: inset 0 0 0 1px var(--dsw-alias-border-l3), var(--dsw-elevation-soft);
+      }
+
+      body[data-dsh-skin-style] [data-slot="main.conversation"] [data-composer-card]:has([data-composer-input]:focus) {
+        box-shadow: inset 0 0 0 1px var(--dsw-alias-border-selected), var(--dsw-elevation-soft);
+      }
+
+      /* 调整会话正文的块间节奏，保留行距设置、代码块和表格的滚动规则。 */
+      body[data-dsh-skin-style] ${CHAT_PROSE} > :is(p, ul, ol):not(:first-child, :last-child) {
+        margin-block: 12px;
+      }
+
+      body[data-dsh-skin-style] ${CHAT_PROSE} > :is(h1, h2, h3):not(:first-child) {
+        margin-block-start: 24px;
+      }
+
+      body[data-dsh-skin-style] ${CHAT_PROSE} > :is(h1, h2, h3):not(:last-child) {
+        margin-block-end: 10px;
+      }
+
+      /* 写作风格的宋体只作用于会话正文，导航、控件和代码保留宿主字体。 */
+      body[data-dsh-skin-style="writing"] ${CHAT_PROSE},
+      body[data-dsh-skin-style="writing"] ${CHAT_PROSE} :is(h1, h2, h3, h4, h5, h6, th, td) {
+        font-family: ${SERIF_UI};
+      }
+
+      /* 代码标记靠底色区分，密集的文件名和路径之间保留连贯的阅读视线。 */
+      body:is([data-dsh-skin-style="writing"], [data-dsh-skin-style="sketch"]) ${CHAT_PROSE} :not(pre) > code {
+        border-color: transparent;
+        padding-inline: 4px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dsk-knob { transition: none; }
+      }
+    `
+
+    /** 保留皮肤的文本换行、选区和阴影覆盖。 */
     var CSS = [
-      '.dsk-row { display: flex; flex-direction: column; gap: 8px; padding: 16px 0; border-bottom: 0.5px solid var(--dsw-alias-border-l2); }',
-      '.dsk-head { display: flex; align-items: center; gap: 8px; }',
-      '.dsk-title { font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-primary); }',
-      '.dsk-desc { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }',
-      '.dsk-warn { font-size: 12px; line-height: 18px; color: color-mix(in srgb, var(--dsw-alias-state-warn-label) 65%, var(--dsw-alias-label-primary)); }',
-      '.dsk-body { display: flex; flex-direction: column; gap: 8px; }',
-      '.dsk-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }',
-      '.dsk-label { min-width: 104px; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary); }',
-      '.dsk-pv { width: 12px; height: 12px; border-radius: 3px; background: var(--dsk-pv-light); box-shadow: inset 0 0 0 0.5px rgba(127, 127, 127, 0.35); }',
-      'body[data-ds-dark-theme] .dsk-pv { background: var(--dsk-pv-dark); }',
-      '.dsk-swatch { box-sizing: border-box; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: var(--dsk-fill); box-shadow: inset 0 0 0 0.5px rgba(127, 127, 127, 0.35); cursor: pointer; outline-offset: 2px; }',
-      'body[data-ds-dark-theme] .dsk-swatch { background: var(--dsk-fill-dark); }',
-      '@media (hover: hover) { .dsk-swatch:hover { box-shadow: inset 0 0 0 0.5px rgba(127, 127, 127, 0.35), 0 0 0 3px var(--dsw-alias-interactive-bg-hover-accent); } }',
-      '.dsk-swatch[aria-pressed="true"] { outline: 1.5px solid var(--dsw-alias-label-primary); }',
+      LAYOUT_CSS,
       'body[data-dsh-skin-style] ::selection { background: color-mix(in srgb, var(--dsw-alias-link) 26%, transparent); }',
-      '.dsk-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px; border: 0.5px solid var(--dsw-alias-border-l3); border-radius: var(--dsw-radius-sm); background: transparent; font: inherit; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary); cursor: pointer; }',
-      '.dsk-chip[aria-pressed="true"] { background: var(--dsw-alias-bg-module-platform); border-color: var(--dsw-alias-border-selected); color: var(--dsw-alias-label-primary); }',
-      '@media (hover: hover) { .dsk-chip:hover { background: var(--dsw-alias-interactive-bg-hover); } }',
-      '.dsk-switch { position: relative; margin-left: auto; width: 32px; height: 18px; padding: 0; border: 0; border-radius: 999px; background: var(--dsw-alias-state-idle-primary); cursor: pointer; transition: background-color 150ms ease; }',
-      '.dsk-switch[aria-checked="true"] { background: var(--dsw-alias-button-info-fill); }',
-      '.dsk-knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform 150ms ease; }',
-      '.dsk-switch[aria-checked="true"] .dsk-knob { transform: translateX(14px); }',
-      '.dsk-reset { align-self: flex-start; padding: 4px 0; border: 0; background: transparent; font: inherit; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); cursor: pointer; }',
-      '.dsk-reset:disabled { opacity: 0.5; cursor: default; }',
-      '@media (hover: hover) { .dsk-reset:hover:not(:disabled) { color: var(--dsw-alias-label-primary); } }',
-      '.dsk-off .dsk-body { opacity: 0.7; }',
       /* 会话列是 overflow: hidden，任何超宽内容都会被直接裁掉、连滚动条都没有。
          这里让正文里的长串主动找断点，别把整行顶出列宽。 */
       'body[data-dsh-skin-style] { overflow-wrap: anywhere; }',
@@ -530,20 +994,6 @@ window.__ModuleLoader__.load({
       'body[data-dsh-skin-style] .katex-display { font-size: 1em; white-space: normal; overflow-x: auto; overflow-y: hidden; }',
       'body[data-dsh-skin-style] .katex-display > .katex { display: inline; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }',
       'body[data-dsh-skin-style], body[data-dsh-skin-style] * { --dsw-elevation-stroke: 0 0 0 0.5px var(--dsk-elevation-stroke-color); --dsw-elevation-panel: var(--dsk-elevation-panel); --dsw-elevation-prominent: var(--dsk-elevation-prominent); --dsw-elevation-soft: var(--dsk-elevation-soft); }',
-      'body[data-dsh-skin-style] [data-slot="sidebar.session.action"] button { transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease, color 150ms ease; }',
-      'body[data-dsh-skin-style] [data-slot="sidebar.session.action"] button:has([class*="newSessionLabel"]) { height: 46px; align-items: center; padding: 0 14px; }',
-      'body[data-dsh-skin-style] [data-slot="sidebar.session.action"] button:has([class*="newSessionLabel"]) [class*="newSessionContent"] { justify-content: flex-start; width: auto; flex: 1; gap: 8px; }',
-      'body[data-dsh-skin-style] [data-slot="sidebar.session.action"] button:has([class*="newSessionLabel"]):active { transform: translateY(1px); }',
-      'body[data-dsh-skin-style="minimal"] [data-slot="sidebar.session.action"] button:has([class*="newSessionLabel"]) { height: 40px; border: 0.5px solid var(--dsw-alias-border-l3); border-radius: var(--dsw-radius-md); background: transparent; color: var(--dsw-alias-label-secondary); font-weight: 400; }',
-      '@media (hover: hover) { body[data-dsh-skin-style="minimal"] [data-slot="sidebar.session.action"] button:has([class*="newSessionLabel"]):hover { background: var(--dsw-alias-bg-module-platform); color: var(--dsw-alias-label-primary); } }',
-      'body[data-dsh-skin-style="hacker"] [data-slot="sidebar.session.action"] button:has([class*="newSessionLabel"]) { height: 46px; border: 0; border-radius: 0; clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%); letter-spacing: 0.1em; font-weight: 600; color: var(--dsw-alias-link); background: repeating-linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-link) 10%, transparent) 0 1px, transparent 1px 4px), var(--dsw-alias-bg-layer-1); box-shadow: inset 3px 0 0 var(--dsw-alias-link); }',
-      '@media (hover: hover) { body[data-dsh-skin-style="hacker"] [data-slot="sidebar.session.action"] button:has([class*="newSessionLabel"]):hover { box-shadow: inset 3px 0 0 var(--dsw-alias-link), inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-link) 45%, transparent); } }',
-      'body[data-dsh-skin-style="writing"] [data-slot="sidebar.session.action"] button:has([class*="newSessionLabel"]) { height: 48px; border: 0; border-radius: 6px 6px 0 0; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), 50% 100%, 0 calc(100% - 10px)); letter-spacing: 0.03em; font-weight: 600; color: var(--dsw-alias-label-primary); background: linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-link) 12%, var(--dsw-alias-bg-layer-1)), var(--dsw-alias-bg-layer-1)); }',
-      '@media (hover: hover) { body[data-dsh-skin-style="writing"] [data-slot="sidebar.session.action"] button:has([class*="newSessionLabel"]):hover { background: linear-gradient(180deg, color-mix(in srgb, var(--dsw-alias-link) 20%, var(--dsw-alias-bg-layer-1)), var(--dsw-alias-bg-layer-1)); } }',
-      'body[data-dsh-skin-style="sketch"] [data-slot="sidebar.session.action"] button:has([class*="newSessionLabel"]) { height: 44px; border: 1.5px solid var(--dsw-alias-border-l4); border-radius: 8px; background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); box-shadow: 2px 2px 0 var(--dsw-alias-border-l3); letter-spacing: 0.05em; font-weight: 700; }',
-      '@media (hover: hover) { body[data-dsh-skin-style="sketch"] [data-slot="sidebar.session.action"] button:has([class*="newSessionLabel"]):hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--dsw-alias-border-l3); background: var(--dsw-alias-bg-layer-2); } }',
-      'body[data-dsh-skin-style="sketch"] [data-slot="sidebar.session.action"] button:has([class*="newSessionLabel"]):active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--dsw-alias-border-l3); }',
-      '@media (prefers-reduced-motion: reduce) { body[data-dsh-skin-style] [data-slot="sidebar.session.action"] button::after { animation: none; } }',
     ].join('\n')
 
     /** 出错只报告，不向外抛：抛出去就是整页停在加载页。 */
@@ -610,6 +1060,9 @@ window.__ModuleLoader__.load({
       if (typeof parsed.accent === 'string') raw.accent = parsed.accent
       if (typeof parsed.radius === 'string') raw.radius = parsed.radius
       if (typeof parsed.lineHeight === 'string') raw.lineHeight = parsed.lineHeight
+      if (raw.style === 'writing' && Object.prototype.hasOwnProperty.call(EDITORIAL_ACCENT_ALIASES, raw.accent)) {
+        raw.accent = EDITORIAL_ACCENT_ALIASES[raw.accent]
+      }
       return normalizeSettings(raw)
     }
 
@@ -688,11 +1141,6 @@ window.__ModuleLoader__.load({
         if (!Object.prototype.hasOwnProperty.call(radii, name)) continue
         out['--dsw-radius-' + name] = { light: radii[name], dark: radii[name] }
       }
-      // 字体接管：风格自己定 UI 字体（写作是宋体，黑客是等宽）。
-      // 写在 token 层里，会盖掉「字体设置」行里的选择——这是风格的代价。
-      if (style.font !== null) {
-        out['--dsw-font-family'] = { light: style.font, dark: style.font }
-      }
       // 强调色配套的浅色底（用户气泡、计划模式底、导航选中底）。不换这几个，
       // 聊天里最大的那块有色面会永远是淡蓝色。宿主本身大量用 color-mix，基线支持。
       var lightBase = style.light['--dsw-alias-bg-layer-2']
@@ -703,7 +1151,7 @@ window.__ModuleLoader__.load({
       }
       out['--dsw-specific-bubble'] = {
         light: tint(accent.light.fill, 8, lightBase),
-        dark: tint(accent.dark.fill, 16, darkBase)
+        dark: tint(accent.dark.fill, value.style === 'hacker' ? 10 : 16, darkBase)
       }
       out['--dsw-specific-bubble-highlight'] = {
         light: tint(accent.light.fill, 16, lightBase),
@@ -775,6 +1223,7 @@ window.__ModuleLoader__.load({
           report(error)
         }
       }
+      syncBrand()
       emit()
     }
 
@@ -942,94 +1391,64 @@ window.__ModuleLoader__.load({
       }
     }
 
-    /** 鲸鱼缩进徽章后的缩放和左边距：等比缩到 18 宽。 */
-    var WHALE_SCALE = 0.777
-    var WHALE_LEFT = 3
+    /** 配饰留在侧脸轮廓上方，给原版眼睛与表情留出空间。 */
+    var BRAND_ACCESSORIES = {
+      writing: h('g', null,
+        h('rect', {
+          x: -1.18,
+          y: -4.74,
+          width: 10.3,
+          height: 4.65,
+          rx: 2.15,
+          fill: 'var(--dsw-alias-bg-layer-1)',
+          stroke: 'currentColor',
+          strokeWidth: 0.69
+        }),
+        h('path', {
+          d: 'M1.6-2.42h.01m2.35 0h.01m2.35 0h.01',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: 0.95,
+          strokeLinecap: 'round'
+        }),
+        h('circle', { cx: 8.66, cy: 0.49, r: 0.44, fill: 'currentColor' }),
+        h('circle', { cx: 9.76, cy: 0.76, r: 0.27, fill: 'currentColor' })
+      ),
+      sketch: h('g', { transform: 'rotate(-10 7.7 2.2)' },
+        h('path', {
+          d: 'M3.4 2.4C3 .9 4.5-.43 7.3-.62c2.68-.19 5.17.67 5.37 1.98.16 1-1.03 1.63-3.18 1.65l-4.5.05c-.81.01-1.36-.2-1.59-.66Z',
+          fill: 'currentColor',
+          stroke: 'var(--dsw-alias-bg-layer-1)',
+          strokeWidth: 0.65
+        }),
+        h('path', { d: 'M8.22-.5q.18-.65.85-.87', fill: 'none', stroke: 'currentColor', strokeWidth: 0.72, strokeLinecap: 'round' })
+      )
+    }
 
-    /**
-     * 侧栏品牌标记：鲸鱼举一件大道具。
-     * 道具和鲸鱼用两种颜色，重叠也不会糊成一团：鲸鱼走强调色，道具走正文色。
-     * 道具画在鲸鱼上层，看起来是举在身前。极简不举东西。
-     */
-    function BrandMark(props) {
-      var size = props !== null && props !== undefined && typeof props.size === 'number' ? props.size : 24
-      var pair = useState(settings)
+    /** 黑客使用像素轮廓，其他风格使用原版轮廓和各自的配饰。 */
+    function BrandMark() {
+      var pair = useState(settings.style)
+      var variant = pair[0]
       useEffect(function () {
         return subscribe(function () {
-          pair[1](Object.assign({}, settings))
+          pair[1](settings.style)
         })
       }, [])
-      var styleId = pair[0].style
-      var ink = 'var(--dsw-alias-link)'
-      var propInk = 'var(--dsw-alias-label-primary)'
 
-      if (styleId === 'minimal') {
-        return h('svg', {
-          viewBox: '0 0 23.16 17.04',
-          width: size,
-          height: (size * 17.04) / 23.16,
-          'aria-hidden': true,
-          focusable: 'false',
-          style: { display: 'block' }
-        }, h('path', { d: WHALE_PATH, fill: 'var(--dsw-alias-label-primary)' }))
-      }
-
-      // 手绘：不拿道具，画成涂鸦——淡色填充、墨线勾边、头顶两道喷气。
-      if (styleId === 'sketch') {
-        return h('svg', {
-          viewBox: '0 0 24 24',
-          width: size,
-          height: size,
-          'aria-hidden': true,
-          focusable: 'false',
-          style: { display: 'block' }
-        }, [
-          h('path', {
-            key: 'whale',
-            d: WHALE_PATH,
-            transform: 'translate(2.4 5.2) scale(0.84)',
-            fill: ink,
-            fillOpacity: 0.22,
-            stroke: propInk,
-            strokeWidth: 1.6,
-            strokeLinejoin: 'round'
-          }),
-          h('path', { key: 'spout-1', d: 'M6.6 5.0 C6.2 3.8 6.8 3.0 7.4 2.6', stroke: propInk, strokeWidth: 1.1, strokeLinecap: 'round', fill: 'none' }),
-          h('path', { key: 'spout-2', d: 'M8.6 4.6 C8.4 3.4 9.0 2.6 9.6 2.2', stroke: propInk, strokeWidth: 1.1, strokeLinecap: 'round', fill: 'none' })
-        ])
-      }
-
-      var prop
-      if (styleId === 'hacker') {
-        // 一道大闪电，从左下劈到右上
-        prop = h('path', {
-          key: 'bolt',
-          d: 'M5.6 0.8 L1.4 10.6 H4.4 L2.8 17.6 L8.4 7.6 H5.4 Z',
-          fill: propInk
-        })
-      } else if (styleId === 'writing') {
-        // 一支大羽毛笔，笔尖在左下
-        prop = h('g', { key: 'quill' },
-          h('path', { d: 'M1.8 18.6 C2.2 11.6 4.8 4.6 8.8 1.4 C9.2 8.4 6.6 15.4 1.8 18.6 Z', fill: propInk }),
-          h('path', { d: 'M2.4 17.4 C4.2 12.4 6.4 7.4 8.6 2.6', stroke: 'var(--dsw-alias-bg-layer-1)', strokeWidth: 1.1, fill: 'none' })
+      return h('span', { className: 'dsk-brand-mark', 'data-dsk-mascot': variant, 'aria-hidden': true },
+        h('svg', { viewBox: '0 0 28 24', width: 44, height: 44, focusable: 'false' },
+          h('g', { transform: variant === 'writing' ? 'translate(2.42 5.35)' : 'translate(2.42 4.25)' },
+            variant === 'hacker'
+              ? h('path', { d: PIXEL_WHALE_PATH, fill: 'currentColor', transform: 'scale(1.0527 1.065)', shapeRendering: 'crispEdges' })
+              : h('path', {
+                d: WHALE_PATH,
+                fill: 'currentColor',
+                transform: variant === 'writing' ? 'translate(0 .7)' : undefined
+              }),
+            BRAND_ACCESSORIES[variant]
+          )
         )
-      } else {
-        // 兜底：不该走到这里
-        prop = null
-      }
-
-      return h('svg', {
-        viewBox: '0 0 24 24',
-        width: size,
-        height: size,
-        'aria-hidden': true,
-        focusable: 'false',
-        style: { display: 'block' }
-      }, [
-        h('g', { key: 'whale', transform: 'translate(6.6 10.0) scale(0.73)' },
-          h('path', { d: WHALE_PATH, fill: ink })),
-        prop
-      ])
+      )
     }
 
     /** 侧栏品牌槽的服务和当前注册句柄。 */
@@ -1071,21 +1490,32 @@ window.__ModuleLoader__.load({
       var style = STYLES[current.style] || STYLES[DEFAULTS.style]
       var currentAccent = findById(style.accents, current.accent) || style.accents[0]
 
-      var styleChips = Object.keys(STYLES).map(function (id) {
+      var styleCards = Object.keys(STYLES).map(function (id) {
         var preset = STYLES[id]
         var preview = {
-          '--dsk-pv-light': 'linear-gradient(135deg, ' + preset.light['--dsw-alias-bg-base'] + ' 0 52%, ' + preset.accents[0].light.fill + ' 52% 100%)',
-          '--dsk-pv-dark': 'linear-gradient(135deg, ' + preset.dark['--dsw-alias-bg-base'] + ' 0 52%, ' + preset.accents[0].dark.fill + ' 52% 100%)'
+          '--dsk-preview-canvas-light': preset.light['--dsw-alias-bg-base'],
+          '--dsk-preview-canvas-dark': preset.dark['--dsw-alias-bg-base'],
+          '--dsk-preview-rail-light': preset.light['--dsw-specific-sidebar-fill'],
+          '--dsk-preview-rail-dark': preset.dark['--dsw-specific-sidebar-fill'],
+          '--dsk-preview-surface-light': preset.light['--dsw-alias-bg-layer-1'],
+          '--dsk-preview-surface-dark': preset.dark['--dsw-alias-bg-layer-1'],
+          '--dsk-preview-accent-light': preset.accents[0].light.fill,
+          '--dsk-preview-accent-dark': preset.accents[0].dark.fill,
+          '--dsk-preview-radius': preset.radii.medium.sm
         }
         return h('button', {
           key: id,
           type: 'button',
-          className: 'dsk-chip',
+          className: 'dsk-preset',
           'aria-pressed': current.style === id,
           onClick: function () {
             update({ style: id, enabled: true })
           }
-        }, h('span', { className: 'dsk-pv', style: preview }), t(preset.name))
+        },
+          h('span', { className: 'dsk-preview', style: preview, 'aria-hidden': true },
+            h('span', { className: 'dsk-preview-panel' })),
+          h('span', { className: 'dsk-preset-name' }, t(preset.name))
+        )
       })
 
       var swatches = style.accents.map(function (item) {
@@ -1137,9 +1567,12 @@ window.__ModuleLoader__.load({
         && current.radius === DEFAULTS.radius
         && current.lineHeight === DEFAULTS.lineHeight
 
-      return h('div', { className: current.enabled ? 'dsk-row' : 'dsk-row dsk-off' },
+      return h('div', { className: 'dsk-row' },
         h('div', { className: 'dsk-head' },
-          h('div', { className: 'dsk-title' }, t('title')),
+          h('div', null,
+            h('div', { className: 'dsk-title' }, t('title')),
+            h('div', { className: 'dsk-desc' }, t('description'))
+          ),
           h('button', {
             type: 'button',
             className: 'dsk-switch',
@@ -1149,36 +1582,35 @@ window.__ModuleLoader__.load({
             onClick: function () {
               update({ enabled: !current.enabled })
             }
-          }, h('span', { className: 'dsk-knob' }))
+          }, h('span', { className: 'dsk-knob', 'aria-hidden': true }))
         ),
-        h('div', { className: 'dsk-desc' }, t('description')),
-        runtime.ready || !runtime.settled ? null : h('div', { className: 'dsk-warn' }, t('noTheme')),
-        h('div', { className: 'dsk-body' },
-          h('div', { className: 'dsk-group', role: 'group', 'aria-labelledby': 'dsk-style-label' },
-            h('span', { className: 'dsk-label', id: 'dsk-style-label' }, t('style')),
-            styleChips
-          ),
+        runtime.ready || !runtime.settled ? null : h('div', { className: 'dsk-warn', role: 'status' }, t('noTheme')),
+        h('div', { className: 'dsk-group', role: 'group', 'aria-labelledby': 'dsk-style-label' },
+          h('span', { className: 'dsk-label', id: 'dsk-style-label' }, t('style')),
+          h('div', { className: 'dsk-presets' }, styleCards)
+        ),
+        h('div', { className: 'dsk-options' },
           h('div', { className: 'dsk-group', role: 'group', 'aria-labelledby': 'dsk-accent-label' },
             h('span', { className: 'dsk-label', id: 'dsk-accent-label' }, t('accent') + ' · ' + t(currentAccent.name)),
-            swatches
+            h('div', { className: 'dsk-swatches' }, swatches)
           ),
           h('div', { className: 'dsk-group', role: 'group', 'aria-labelledby': 'dsk-radius-label' },
-            h('span', { className: 'dsk-label', id: 'dsk-radius-label' }, t('radius') + ' · ' + t(levelLabels[current.radius])),
-            chips
+            h('span', { className: 'dsk-label', id: 'dsk-radius-label' }, t('radius')),
+            h('div', { className: 'dsk-segments' }, chips)
           ),
           h('div', { className: 'dsk-group', role: 'group', 'aria-labelledby': 'dsk-lh-label' },
-            h('span', { className: 'dsk-label', id: 'dsk-lh-label' }, t('lineHeight') + ' · ' + t(lhLabels[current.lineHeight])),
-            lhChips
-          ),
-          h('button', {
-            type: 'button',
-            className: 'dsk-reset',
-            disabled: atDefault,
-            onClick: function () {
-              update({ enabled: true, style: DEFAULTS.style, accent: DEFAULTS.accent, radius: DEFAULTS.radius, lineHeight: DEFAULTS.lineHeight })
-            }
-          }, t('reset'))
-        )
+            h('span', { className: 'dsk-label', id: 'dsk-lh-label' }, t('lineHeight')),
+            h('div', { className: 'dsk-segments' }, lhChips)
+          )
+        ),
+        h('button', {
+          type: 'button',
+          className: 'dsk-reset',
+          disabled: atDefault,
+          onClick: function () {
+            update(DEFAULTS)
+          }
+        }, t('reset'))
       )
     }
 
