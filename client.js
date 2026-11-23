@@ -528,6 +528,17 @@ window.__ModuleLoader__.load({
       }
     }
 
+    /**
+     * 每套皮肤的签名句：新会话页那句 "Into the Unknown" 换成角色自己的话。
+     * 宿主把这句标题锁在 locale 字典里、没开槽位，皮肤只能接管那个文本节点。
+     */
+    var HERO_LINES = {
+      minimal: { zh: '少，但更好', en: 'Less, but better.' },
+      hacker: { zh: '$ hello, world', en: '$ hello, world' },
+      writing: { zh: '写下一句真话', en: 'One true sentence.' },
+      sketch: { zh: '先画一条线', en: 'Start with a line.' }
+    }
+
     /** Markdown 容器在宿主构建中有普通类名和 CSS Module 类名两种形式。 */
     var CHAT_PROSE = '[data-slot="conversation.chat.node"] :is(.markdown, [class*="_markdown_"])'
 
@@ -900,6 +911,11 @@ window.__ModuleLoader__.load({
         color: var(--dsw-alias-link);
       }
 
+      /* 黑客的新会话标题是一行终端输出，跟等宽走。 */
+      body[data-dsh-skin-style="hacker"] [class*="titleGroup"] > span:first-child {
+        font-family: var(--ds-font-family-code);
+      }
+
       body[data-dsh-skin-style] [data-slot="sidebar.workspaces"] [data-row-key^="session:"][aria-selected="true"] {
         background-color: color-mix(in srgb, var(--dsw-alias-link) 10%, transparent);
       }
@@ -1241,6 +1257,120 @@ window.__ModuleLoader__.load({
       }
     }
 
+    /** 被接管的新会话标题：节点、写进去的句子、接管前宿主自己的文案。 */
+    var heroNode = null
+    var heroApplied = null
+    var heroOriginal = null
+    var heroObserver = null
+    var heroQueued = false
+
+    /** 新会话标题那个 span：titleGroup 里唯一不带类名的子元素，另一个是预览徽章。 */
+    function heroTitle() {
+      var group = document.querySelector('[class*="titleGroup"]')
+      if (group === null) return null
+      for (var index = 0; index < group.children.length; index += 1) {
+        var child = group.children[index]
+        if (child.classList.length === 0) return child
+      }
+      return null
+    }
+
+    /** 当前皮肤当前语言该说的那句话。 */
+    function heroLineOf(value) {
+      var preset = HERO_LINES[value.style]
+      if (preset === undefined) return null
+      return preset[detectLang()] || preset.en
+    }
+
+    /** 把标题写成当前皮肤的那句话。宿主重画、换语言、切风格都靠这里追平。 */
+    function applyHero() {
+      if (typeof document === 'undefined' || document.body === null) return
+      var wanted = settings.enabled ? heroLineOf(settings) : null
+      if (heroNode !== null && heroNode.isConnected && heroNode.textContent === wanted) return
+      if (wanted === null) {
+        restoreHero()
+        return
+      }
+      var node = heroTitle()
+      if (node === null) {
+        heroNode = null
+        heroApplied = null
+        heroOriginal = null
+        return
+      }
+      if (node !== heroNode) {
+        heroNode = node
+        heroApplied = null
+        heroOriginal = node.textContent
+      } else if (node.textContent !== heroApplied) {
+        // 宿主换语言时写回了自己的文案，把这句当成新的原文，关皮肤时照着还原。
+        heroOriginal = node.textContent
+      }
+      if (node.textContent !== wanted) node.textContent = wanted
+      heroApplied = wanted
+    }
+
+    /** 把标题交还宿主：只在上面还挂着我们的句子时动它，别覆盖宿主新写的文案。 */
+    function restoreHero() {
+      try {
+        if (heroNode !== null && heroNode.isConnected && heroOriginal !== null && heroNode.textContent === heroApplied) {
+          heroNode.textContent = heroOriginal
+        }
+      } catch (error) {
+        report(error)
+      }
+      heroNode = null
+      heroApplied = null
+      heroOriginal = null
+    }
+
+    /** DOM 变动很密（流式输出），一帧里最多重算一次。 */
+    function scheduleHero() {
+      if (heroQueued) return
+      heroQueued = true
+      var run = function () {
+        heroQueued = false
+        try {
+          applyHero()
+        } catch (error) {
+          report(error)
+        }
+      }
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run)
+      else setTimeout(run, 16)
+    }
+
+    /** 盯着 DOM：React 重画或换了语言，标题会被写回宿主文案，这里再盖一次。 */
+    function watchHero() {
+      if (heroObserver !== null || typeof MutationObserver === 'undefined') return
+      try {
+        heroObserver = new MutationObserver(scheduleHero)
+        heroObserver.observe(document.body, { childList: true, subtree: true, characterData: true })
+      } catch (error) {
+        heroObserver = null
+        report(error)
+      }
+    }
+
+    /** 按开关状态接管或交还标题。 */
+    function syncHero() {
+      try {
+        if (typeof document === 'undefined' || document.body === null) return
+        if (!settings.enabled) {
+          if (heroObserver !== null) {
+            heroObserver.disconnect()
+            heroObserver = null
+          }
+          restoreHero()
+          return
+        }
+        watchHero()
+        applyHero()
+      } catch (error) {
+        report(error)
+      }
+    }
+
     /** 撤掉当前 token 层。 */
     function clearLayer() {
       if (disposeLayer === null) return
@@ -1261,6 +1391,7 @@ window.__ModuleLoader__.load({
       applier = function () {
         clearLayer()
         syncAttribute()
+        syncHero()
         if (!settings.enabled) return
         disposeLayer = theme.overrideTokens(SOURCE, buildTokens(settings))
       }
@@ -1272,6 +1403,15 @@ window.__ModuleLoader__.load({
       clearLayer()
       applier = null
       runtime.ready = false
+      try {
+        if (heroObserver !== null) {
+          heroObserver.disconnect()
+          heroObserver = null
+        }
+        restoreHero()
+      } catch (error) {
+        report(error)
+      }
       try {
         if (brandDisposer !== null) brandDisposer()
       } catch (error) {
